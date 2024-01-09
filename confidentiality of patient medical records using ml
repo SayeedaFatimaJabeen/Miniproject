@@ -1,0 +1,79 @@
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+from cryptography.fernet import Fernet
+from datetime import datetime
+
+# Step 1: Define Sample Data
+data = {
+    'user_id': [1, 2, 3, 4, 5],
+    'role': ['doctor', 'nurse', 'admin', 'doctor', 'admin'],
+    'patient_id': [101, 102, 103, 101, 104],
+    'access_time': ['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05'],
+    'action': ['view', 'modify', 'view', 'modify', 'view'],
+    'data': ['encrypted_data_1', 'encrypted_data_2', 'encrypted_data_3', 'encrypted_data_1', 'encrypted_data_4']
+}
+
+df = pd.DataFrame(data)
+df['access_time'] = pd.to_datetime(df['access_time'])
+
+# Step 2: Machine Learning-Based Access Control
+# Train a simple classifier for access control
+le = LabelEncoder()
+df['role_encoded'] = le.fit_transform(df['role'])
+
+X = df[['user_id', 'role_encoded']]
+y = df['action']
+
+classifier = RandomForestClassifier()
+classifier.fit(X, y)
+
+# Rest of the code remains the same...
+
+
+# Step 3: Machine Learning-Based Encryption
+# For simplicity, use a symmetric encryption scheme (Fernet)
+key = Fernet.generate_key()
+cipher_suite = Fernet(key)
+
+# Encrypt sensitive data
+df['encrypted_data'] = df['data'].apply(lambda x: cipher_suite.encrypt(x.encode()).decode())
+
+# Step 4: Comprehensive Audit Trail
+# Log audit trail events
+audit_log = []
+
+def log_event(user_id, role, patient_id, action, access_time):
+    audit_log.append({
+        'user_id': user_id,
+        'role': role,
+        'patient_id': patient_id,
+        'action': action,
+        'access_time': access_time
+    })
+
+# Simulate access events
+for index, row in df.iterrows():
+    user_id = row['user_id']
+    role = row['role']
+    patient_id = row['patient_id']
+    action = row['action']
+    access_time = row['access_time']
+
+    # Step 5: Access Control Check
+    if classifier.predict([[user_id, le.transform([role])[0]]]) == action:
+        # Authorized access
+        log_event(user_id, role, patient_id, action, access_time)
+    else:
+        # Unauthorized access
+        print(f"Unauthorized access detected: User {user_id} with role {role} attempted {action} on patient {patient_id}")
+
+# Step 6: Print Audit Log
+print("Audit Log:")
+print(pd.DataFrame(audit_log))
+
+# Step 7: Print Decrypted Data
+# (For demonstration purposes; in a real scenario, decryption would happen only for authorized users)
+df['decrypted_data'] = df['encrypted_data'].apply(lambda x: cipher_suite.decrypt(x.encode()).decode())
+print("Decrypted Data:")
+print(df[['user_id', 'patient_id', 'decrypted_data']])
